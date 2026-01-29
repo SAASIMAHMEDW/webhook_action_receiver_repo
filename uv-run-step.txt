@@ -1,7 +1,0 @@
-install UV
-
-uv init
-
-un venv
-
-Activate with: .venv\Scripts\activate
