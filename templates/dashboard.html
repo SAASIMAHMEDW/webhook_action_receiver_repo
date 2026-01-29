@@ -38,7 +38,6 @@
         <p>TechStaX Assignment | Auto-refresh every 15 seconds</p>
       </footer>
     </div>
-
     <script>
       // Configuration
       const POLL_INTERVAL = 15000; // 15 seconds
@@ -105,66 +104,17 @@
             }
           }
 
-          updateStatus("connected", data.count);
+          // Update status with ACTUAL displayed count, not API count
+          updateStatus("connected", displayedEventIds.size);
         } catch (error) {
           console.error("Fetch error:", error);
           updateStatus("error");
         }
       }
 
-      // function renderEvents(events, prepend = false) {
-      //   // Hide empty state if we have events
-      //   if (events.length > 0) {
-      //     emptyState.style.display = "none";
-      //     eventsList.style.display = "block";
-      //   }
-
-      //   events.forEach((event) => {
-      //     // Skip if already displayed
-      //     if (displayedEventIds.has(event.id)) {
-      //       return;
-      //     }
-      //     displayedEventIds.add(event.id);
-
-      //     const li = document.createElement("li");
-      //     li.className = `event-item event-${event.action.toLowerCase()}`;
-      //     li.dataset.id = event.id;
-
-      //     const icon = getEventIcon(event.action);
-
-      //     li.innerHTML = `
-      //               <div class="event-icon">${icon}</div>
-      //               <div class="event-content">
-      //                   <p class="event-message">${escapeHtml(event.message)}</p>
-      //                   <div class="event-meta">
-      //                       <span class="event-type">${event.action}</span>
-      //                       <span class="event-time">${formatTime(event.timestamp)}</span>
-      //                       <span class="event-id">#${event.request_id}</span>
-      //                   </div>
-      //               </div>
-      //           `;
-
-      //     if (prepend) {
-      //       eventsList.insertBefore(li, eventsList.firstChild);
-      //     } else {
-      //       eventsList.appendChild(li);
-      //     }
-
-      //     // Animation for new items
-      //     li.style.animation = "slideIn 0.3s ease-out";
-      //   });
-
-      //   // Limit displayed events to last 50 (prevent DOM bloat)
-      //   while (eventsList.children.length > 50) {
-      //     const removed = eventsList.lastChild;
-      //     displayedEventIds.delete(removed.dataset.id);
-      //     eventsList.removeChild(removed);
-      //   }
-      // }
       function renderEvents(events, prepend = false) {
-        // Hide empty state if we have any events (existing + new)
-        const totalEvents = eventsList.children.length + events.length;
-        if (totalEvents > 0) {
+        // Hide empty state if we have any events
+        if (events.length > 0) {
           emptyState.style.display = "none";
           eventsList.style.display = "block";
         }
@@ -184,16 +134,16 @@
           const icon = getEventIcon(event.action);
 
           li.innerHTML = `
-            <div class="event-icon">${icon}</div>
-            <div class="event-content">
-                <p class="event-message">${escapeHtml(event.message)}</p>
-                <div class="event-meta">
-                    <span class="event-type">${event.action}</span>
-                    <span class="event-time">${formatTime(event.timestamp)}</span>
-                    <span class="event-id">#${event.request_id}</span>
+                <div class="event-icon">${icon}</div>
+                <div class="event-content">
+                    <p class="event-message">${escapeHtml(event.message)}</p>
+                    <div class="event-meta">
+                        <span class="event-type">${event.action}</span>
+                        <span class="event-time">${formatTime(event.timestamp)}</span>
+                        <span class="event-id">#${event.request_id}</span>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
 
           if (prepend) {
             eventsList.insertBefore(li, eventsList.firstChild);
@@ -205,9 +155,6 @@
           li.style.animation = "slideIn 0.3s ease-out";
         });
 
-        // Update status with correct count
-        updateStatus("connected", displayedEventIds.size);
-
         // Limit displayed events to last 50 (prevent DOM bloat)
         while (eventsList.children.length > 50) {
           const removed = eventsList.lastChild;
@@ -217,6 +164,7 @@
           eventsList.removeChild(removed);
         }
       }
+
       function getEventIcon(action) {
         const icons = {
           PUSH: "⬆️",
@@ -226,26 +174,6 @@
         return icons[action] || "📋";
       }
 
-      // function updateStatus(status, count = 0) {
-      //   statusIndicator.className = "status-indicator " + status;
-
-      //   const now = new Date().toLocaleTimeString();
-
-      //   switch (status) {
-      //     case "connected":
-      //       statusText.textContent = `Live • ${count} events`;
-      //       lastUpdated.textContent = `Updated: ${now}`;
-      //       break;
-      //     case "loading":
-      //       statusText.textContent = "Updating...";
-      //       break;
-      //     case "error":
-      //       statusText.textContent = "Connection error • Retrying...";
-      //       break;
-      //     default:
-      //       statusText.textContent = "Connecting...";
-      //   }
-      // }
       function updateStatus(status, count = 0) {
         statusIndicator.className = "status-indicator " + status;
 
@@ -253,7 +181,8 @@
 
         switch (status) {
           case "connected":
-            statusText.textContent = `Live • ${count} event${count !== 1 ? "s" : ""}`;
+            const countText = count === 1 ? "1 event" : `${count} events`;
+            statusText.textContent = `Live • ${countText}`;
             lastUpdated.textContent = `Updated: ${now}`;
             break;
           case "loading":
@@ -266,6 +195,7 @@
             statusText.textContent = "Connecting...";
         }
       }
+
       function formatTime(isoString) {
         try {
           const date = new Date(isoString);
