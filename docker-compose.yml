@@ -1,0 +1,66 @@
+services:
+  # ==========================================
+  # OPTION 1: MongoDB Atlas only (port 5000)
+  # ==========================================
+  webhook-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webhook-app
+    restart: no
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env.docker
+    profiles:
+      - atlas
+
+  # ==========================================
+  # OPTION 2: Local MongoDB + Backend (port 5001)
+  # ==========================================
+  mongo:
+    image: mongo:7
+    container_name: webhook-mongo
+    restart: no
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: github_webhooks
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test:
+        ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webhook-network
+    profiles:
+      - local
+
+  webhook-app-local:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: webhook-app-local
+    restart: no
+    ports:
+      - "5001:5000"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-super-secret}
+      MONGO_URI: mongodb://mongo:27017/github_webhooks
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - webhook-network
+    profiles:
+      - local
+
+volumes:
+  mongo_data:
+
+networks:
+  webhook-network:
+    driver: bridge

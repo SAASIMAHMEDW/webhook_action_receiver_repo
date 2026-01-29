@@ -6,6 +6,7 @@ import os
 from app.extensions import mongo
 from app.webhook.routes import webhook
 from app.ui.routes import ui
+from app.health.routes import health
 
 
 def create_app():
@@ -36,5 +37,6 @@ def create_app():
     # Register blueprints
     app.register_blueprint(webhook)  # /webhook/receiver
     app.register_blueprint(ui)       # / and /api/events
+    app.register_blueprint(health)   # /
     
     return app
