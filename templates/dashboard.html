@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -8,7 +8,8 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='style.css') }}"
     />
-  </head>
+  <base target="_blank">
+</head>
   <body>
     <div class="container">
       <header>
@@ -38,15 +39,20 @@
         <p>TechStaX Assignment | Auto-refresh every 15 seconds</p>
       </footer>
     </div>
+
     <script>
       // Configuration
       const POLL_INTERVAL = 15000; // 15 seconds
       const API_ENDPOINT = "/api/events";
+      const MAX_RETRY = 5;
+      const MAX_EVENTS = 50;
 
       // State
       let lastSeenTimestamp = null;
       let displayedEventIds = new Set();
       let pollTimer = null;
+      let retryCount = 0;
+      let isFirstLoad = true;
 
       // DOM Elements
       const eventsList = document.getElementById("events-list");
@@ -57,12 +63,34 @@
 
       // Initialize
       document.addEventListener("DOMContentLoaded", () => {
-        fetchEvents(); // Initial fetch
+        // Clear any existing UI on page load
+        eventsList.innerHTML = "";
+        displayedEventIds.clear();
+
+        // Full sync on first load
+        fetchEvents(true);
         startPolling();
+
+        // Handle tab visibility changes
+        document.addEventListener("visibilitychange", handleVisibilityChange);
       });
 
+      function handleVisibilityChange() {
+        if (document.hidden) {
+          console.log("Tab hidden, pausing polling");
+          stopPolling();
+        } else {
+          console.log("Tab visible, resuming with full sync");
+          // Do full sync when tab becomes visible again
+          fetchEvents(true);
+          startPolling();
+        }
+      }
+
       function startPolling() {
-        pollTimer = setInterval(fetchEvents, POLL_INTERVAL);
+        // Clear existing timer before starting new one
+        stopPolling();
+        pollTimer = setInterval(() => fetchEvents(false), POLL_INTERVAL);
       }
 
       function stopPolling() {
@@ -72,12 +100,14 @@
         }
       }
 
-      async function fetchEvents() {
+      async function fetchEvents(fullSync = false) {
         try {
-          updateStatus("loading");
+          updateStatus(fullSync ? "syncing" : "loading");
 
           let url = API_ENDPOINT;
-          if (lastSeenTimestamp) {
+
+          // Only use last_seen for polling, not for full sync
+          if (!fullSync && lastSeenTimestamp) {
             url += `?last_seen=${encodeURIComponent(lastSeenTimestamp)}`;
           }
 
@@ -89,38 +119,79 @@
 
           const data = await response.json();
 
+          // Reset retry count on success
+          retryCount = 0;
+
           if (data.events && data.events.length > 0) {
             // Update last seen timestamp to the most recent event
-            const newestEvent = data.events[0]; // Already sorted desc
+            const newestEvent = data.events[0];
             lastSeenTimestamp = newestEvent.timestamp;
 
-            // Filter out already displayed events
-            const newEvents = data.events.filter(
-              (e) => !displayedEventIds.has(e.id),
-            );
-
-            if (newEvents.length > 0) {
-              renderEvents(newEvents, true); // prepend new events
+            if (fullSync) {
+              // Full sync: clear and rebuild everything
+              eventsList.innerHTML = "";
+              displayedEventIds.clear();
+              renderEvents(data.events, false); // Append in order
+              isFirstLoad = false;
+            } else {
+              // Normal polling: only add new events
+              const newEvents = data.events.filter(
+                (e) => !displayedEventIds.has(e.id)
+              );
+              if (newEvents.length > 0) {
+                renderEvents(newEvents, true); // Prepend new events
+              }
             }
+          } else if (fullSync) {
+            // No events on full sync - show empty state
+            eventsList.innerHTML = "";
+            displayedEventIds.clear();
+            emptyState.style.display = "block";
+            eventsList.style.display = "none";
           }
 
-          // Update status with ACTUAL displayed count, not API count
+          // Update status with actual displayed count
           updateStatus("connected", displayedEventIds.size);
         } catch (error) {
           console.error("Fetch error:", error);
-          updateStatus("error");
+          handleFetchError(error, fullSync);
+        }
+      }
+
+      function handleFetchError(error, fullSync) {
+        const errorMessage =
+          error.message || "Failed to connect to server. Retrying...";
+        updateStatus("error", displayedEventIds.size, errorMessage);
+
+        // Exponential backoff for retries
+        if (retryCount < MAX_RETRY) {
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+          console.log(
+            `Retrying in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRY})`
+          );
+
+          setTimeout(() => {
+            retryCount++;
+            fetchEvents(fullSync);
+          }, delay);
+        } else {
+          updateStatus(
+            "error",
+            displayedEventIds.size,
+            "Max retries reached. Please refresh the page."
+          );
         }
       }
 
       function renderEvents(events, prepend = false) {
-        // Hide empty state if we have any events
+        // Hide empty state if we have events
         if (events.length > 0) {
           emptyState.style.display = "none";
           eventsList.style.display = "block";
         }
 
         events.forEach((event) => {
-          // Skip if already displayed (check by ID)
+          // Skip if already displayed
           if (displayedEventIds.has(event.id)) {
             console.log("Skipping duplicate event:", event.id);
             return;
@@ -134,16 +205,16 @@
           const icon = getEventIcon(event.action);
 
           li.innerHTML = `
-                <div class="event-icon">${icon}</div>
-                <div class="event-content">
-                    <p class="event-message">${escapeHtml(event.message)}</p>
-                    <div class="event-meta">
-                        <span class="event-type">${event.action}</span>
-                        <span class="event-time">${formatTime(event.timestamp)}</span>
-                        <span class="event-id">#${event.request_id}</span>
-                    </div>
-                </div>
-            `;
+            <div class="event-icon">${icon}</div>
+            <div class="event-content">
+              <p class="event-message">${escapeHtml(event.message)}</p>
+              <div class="event-meta">
+                <span class="event-type">${event.action}</span>
+                <span class="event-time">${formatTime(event.timestamp)}</span>
+                <span class="event-id">#${event.request_id}</span>
+              </div>
+            </div>
+          `;
 
           if (prepend) {
             eventsList.insertBefore(li, eventsList.firstChild);
@@ -155,8 +226,8 @@
           li.style.animation = "slideIn 0.3s ease-out";
         });
 
-        // Limit displayed events to last 50 (prevent DOM bloat)
-        while (eventsList.children.length > 50) {
+        // Limit displayed events to prevent DOM bloat
+        while (eventsList.children.length > MAX_EVENTS) {
           const removed = eventsList.lastChild;
           if (removed && removed.dataset.id) {
             displayedEventIds.delete(removed.dataset.id);
@@ -174,7 +245,7 @@
         return icons[action] || "📋";
       }
 
-      function updateStatus(status, count = 0) {
+      function updateStatus(status, count = 0, message = null) {
         statusIndicator.className = "status-indicator " + status;
 
         const now = new Date().toLocaleTimeString();
@@ -185,11 +256,16 @@
             statusText.textContent = `Live • ${countText}`;
             lastUpdated.textContent = `Updated: ${now}`;
             break;
+          case "syncing":
+            statusText.textContent = message || "Syncing with server...";
+            lastUpdated.textContent = `Updated: ${now}`;
+            break;
           case "loading":
-            statusText.textContent = "Updating...";
+            statusText.textContent = message || "Updating...";
             break;
           case "error":
-            statusText.textContent = "Connection error • Retrying...";
+            statusText.textContent = message || "Connection error • Retrying...";
+            lastUpdated.textContent = `Failed: ${now}`;
             break;
           default:
             statusText.textContent = "Connecting...";
@@ -214,6 +290,7 @@
       // Cleanup on page unload
       window.addEventListener("beforeunload", () => {
         stopPolling();
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
       });
     </script>
   </body>

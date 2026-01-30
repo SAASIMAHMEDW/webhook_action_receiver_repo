@@ -49,11 +49,7 @@ def receiver():
         if event_data is None:
             return jsonify({"status": "ignored", "reason": "not a merge event"}), 200
         
-       result = mongo.db.events.update_one(
-            {"request_id": event_data["request_id"]},
-            {"$setOnInsert": event_data},
-            upsert=True
-        )
+        result = mongo.db.events.update_one({"request_id": event_data["request_id"]},{"$setOnInsert": event_data},upsert=True)
 
         if result.upserted_id:
             return jsonify({
