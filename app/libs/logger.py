@@ -91,15 +91,19 @@ class JsonFormatter(logging.Formatter):
 
 
 # ---------- LOGGER INSTANCE ----------
+
+from threading import Lock
+
 _instance = None
-
-
+_lock = Lock()
 def get_logger():
     global _instance
     if _instance is None:
-        _instance = AppLogger(
-                                name="WebhookActionReceiver",
-                                level="INFO",
-                                to_console=True
-                                )
+        with _lock:
+            if _instance is None:
+                _instance = AppLogger(
+                    name="WebhookActionReceiver",
+                    level="INFO",
+                    to_console=True
+                )
     return _instance

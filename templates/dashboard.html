@@ -20,6 +20,25 @@
           <span id="status-text">Connecting...</span>
           <span class="last-updated" id="last-updated"></span>
         </div>
+        <div class="filters">
+          <div class="filter-group">
+            <label class="filter-label">Timezone</label>
+            <div class="toggle-group">
+              <button class="toggle-btn active" data-timezone="utc">UTC</button>
+              <button class="toggle-btn" data-timezone="ist">IST</button>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Time Range</label>
+            <div class="toggle-group">
+              <button class="toggle-btn active" data-range="15s">
+                Last 15s
+              </button>
+              <button class="toggle-btn" data-range="24h">24 Hours</button>
+            </div>
+          </div>
+        </div>
       </header>
 
       <main>
@@ -36,7 +55,8 @@
       </main>
 
       <footer>
-        <p>TechStaX Assignment | Auto-refresh every 15 seconds</p>
+        <!-- <p>TechStaX Assignment | Auto-refresh every 15 seconds</p> -->
+        <p>Auto-refresh every 15 seconds</p>
       </footer>
     </div>
 
@@ -73,6 +93,29 @@
 
         // Handle tab visibility changes
         document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        document.querySelectorAll(".toggle-btn").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            // Remove active class from siblings
+            this.parentElement.querySelectorAll(".toggle-btn").forEach((b) => {
+              b.classList.remove("active");
+            });
+
+            // Add active class to clicked button
+            this.classList.add("active");
+
+            // Log the selection (for testing)
+            const timezone = this.dataset.timezone;
+            const range = this.dataset.range;
+
+            if (timezone) {
+              console.log("Timezone changed to:", timezone);
+            }
+            if (range) {
+              console.log("Range changed to:", range);
+            }
+          });
+        });
       });
 
       function handleVisibilityChange() {
