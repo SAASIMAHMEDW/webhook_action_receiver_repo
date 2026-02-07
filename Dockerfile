@@ -39,6 +39,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+COPY --from=builder /usr/local /usr/local
+
 # Application environment
 ENV FLASK_APP=server.py \
     FLASK_ENV=production \
@@ -61,3 +63,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 # Run application with gunicorn
 
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--timeout", "120", "server:app"]
+
