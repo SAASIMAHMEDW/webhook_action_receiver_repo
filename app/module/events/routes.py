@@ -33,6 +33,10 @@ def get_events():
             query["timestamp"] = {"$gt": cutoff}
         
         events_cursor = mongo.db.events.find(query).sort("timestamp", -1).limit(50)
+
+        if events_cursor is None:
+            logger.warning("No events found with query: %s", query)
+            return jsonify({"error": "No events found", "events": []}), 404
         
         events_list = []
         for event in events_cursor:
@@ -48,7 +52,7 @@ def get_events():
                 "message": format_event_message(event)
             })
 
-        logger.debug(f"Fetched {len(events_list)} events with query: {query}")
+        logger.debug("Fetched %d events with query: %s", len(events_list), query)
         
         return jsonify({
             "events": events_list,
@@ -57,6 +61,7 @@ def get_events():
         })
         
     except Exception as e:
+        logger.exception("Error fetching events: %s", e)
         return jsonify({"error": str(e), "events": []}), 500
 
 

@@ -22,6 +22,7 @@ def load_env():
         "FLASK_DEBUG": get_env("FLASK_DEBUG", required=False, default="False").lower() == "true",
         "SECRET_KEY": get_env("SECRET_KEY", required=False, default="supersecretkey"),
         "MONGO_URI": get_env("MONGO_URI", required=True),
+        "LOG_LEVEL": get_env("LOG_LEVEL", required=False, default="INFO").upper(),
     }
 
 ENV = load_env()

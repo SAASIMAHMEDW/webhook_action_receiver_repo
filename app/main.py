@@ -26,13 +26,13 @@ def create_app() -> Flask:
         app.config["MONGO_URI"] = ENV["MONGO_URI"]
 
         # Database Connection
-        logger.info("Initializing MongoDB connection")
+        logger.debug("Initializing MongoDB connection")
         mongo.init_app(app)
-        logger.info("MongoDB connection initialized")
+        logger.debug("MongoDB connection initialized")
         # Register blueprints (routers)
-        logger.info("Registering blueprints")
+        logger.debug("Registering blueprints")
         register_blueprints(app)
-        logger.info("Blueprints registered")
+        logger.debug("Blueprints registered")
         return app
     except Exception as e:
         logger.exception("Error creating the Flask application")

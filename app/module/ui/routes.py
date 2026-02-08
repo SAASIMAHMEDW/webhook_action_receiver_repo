@@ -9,5 +9,5 @@ ui = Blueprint("ui", __name__)
 @ui.route("/")
 def dashboard():
     """Render the main dashboard page."""
-    logger.info("Rendering dashboard page")
+    logger.debug("Rendering dashboard page")
     return render_template("dashboard.html")

@@ -93,17 +93,18 @@ class JsonFormatter(logging.Formatter):
 # ---------- LOGGER INSTANCE ----------
 
 from threading import Lock
-
+from app.config.env import ENV
 _instance = None
 _lock = Lock()
-def get_logger():
+LOG_LEVEL = ENV["LOG_LEVEL"]
+def get_logger(level=LOG_LEVEL):
     global _instance
     if _instance is None:
         with _lock:
             if _instance is None:
                 _instance = AppLogger(
                     name="WebhookActionReceiver",
-                    level="INFO",
+                    level=level,
                     to_console=True
                 )
     return _instance

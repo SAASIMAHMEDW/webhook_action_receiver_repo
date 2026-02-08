@@ -12,7 +12,7 @@ API_PREFIX_V1 = API_PREFIX + API_VERSION_PREFIX
 def register_blueprints(app: Flask) -> None:
 
     app.register_blueprint(health, url_prefix=API_PREFIX_V1 + "/health")
-    app.register_blueprint(webhook, url_prefix=API_PREFIX_V1 + "/webhook")
+    app.register_blueprint(webhook, url_prefix=API_PREFIX_V1 + "/webhook/receiver")
     app.register_blueprint(events, url_prefix=API_PREFIX_V1 + "/events") 
     app.register_blueprint(ui, url_prefix="/")
     
